@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Hash TPA</title>
+		
+		<link href="/css/style.css" rel="stylesheet">
+	</head>
+	
+	<body>
+		<section>
+			<main id="paper" contenteditable="true">
+				
+			</main>
+		</section>
+	</body>
+	
+	<script type="text/javascript">
+	
+	const TIME_INTERVAL_TO_ENTER = 3000;
+	const paper = document.querySelector("#paper");
+	let rincorrectWords = [];
+	
+	checkingWhenUserStopEnterWord();
+	listeningContextButtonMouse();
+	
+	function checkingWhenUserStopEnterWord() {
+		let timeoutSubscription;
+		let isTextChange = false;
+		
+		paper.addEventListener('keyup', () => {
+			clearTimeout(timeoutSubscription);
+			isTextChange = true;
+			
+			timeoutSubscription = setTimeout(() => {
+				isTextChange = false;
+				checkWordsInDictonary();
+			}, TIME_INTERVAL_TO_ENTER);
+		});
+	}
+	
+	function checkWordsInDictonary() {
+		console.log("Check")
+		const xml = new XMLHttpRequest();
+		const url = "/api/dictionary/check-text";
+		const wordsInPaper = treatText(paper.innerText).split(" ");
+		
+		xml.open("POST", url, true);
+		xml.setRequestHeader('Content-type', 'application/json');
+		
+		xml.onreadystatechange = (response) => {
+			 if(isOKHttpState(xml)) {
+				let wordsToWrite = searchByWordsIncorrect(JSON.parse(xml.response), paper.innerText.split(" "));
+				writeWordsInPaper(wordsToWrite);
+			 }
+		}
+		
+		xml.send(JSON.stringify(wordsInPaper));
+	}
+	
+	function isOKHttpState(http) {
+		return http.readyState == 4 && http.status == 200;
+	}
+	
+	function searchByWordsIncorrect(incorrectWords, wordsInPaper) {
+		console.log(incorrectWords)
+		rincorrectWords = incorrectWords;
+		for (let indexWordInPaper in wordsInPaper) {
+			let wordInPaper = wordsInPaper[indexWordInPaper];
+			for (let incorrectWord of incorrectWords) {
+				//console.log(wordInPaper + " " + incorrectWord);
+				if(treatText(wordInPaper) == incorrectWord) {
+					//console.log(treatText(wordInPaper))
+					//console.log(incorrectWord)
+					wordsInPaper[indexWordInPaper] = `<span class="incorrect-word">${wordsInPaper[indexWordInPaper]}</span>`;
+				}
+			}
+		}
+		
+		return wordsInPaper;
+	}
+	
+	function writeWordsInPaper(changedWordsInPaper) {
+		paper.innerHTML = changedWordsInPaper.join(" ");
+	}
+	
+	function treatText(text) {
+		let textLowerCase = text.toLowerCase();
+		let withoutSpecialChar = textLowerCase.replace(/[!@#$%^&?*,.]/g, "");
+		return withoutSpecialChar;
+	}
+	
+	// MENU CONTEXTO
+	
+	function listeningContextButtonMouse() {
+		paper.addEventListener('contextmenu', selectText);
+	}
+	
+	function selectText(event) {
+		event.preventDefault();
+		const selectedText = window.getSelection().toString();
+		console.log(selectedText);
+		console.log(rincorrectWords);
+	}
+	
+
+	
+	 
+	
+	</script>
+</html>
