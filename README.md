@@ -5,6 +5,7 @@
   * Baixe o código e adicione a uma pasta de nome _com.ifes.hashdict_ (referenciado no pom.xml);
   * Instale as dependências do _Maven_;
   * Rode a aplicação do _Spring_ (porta 8080);
+  * Acesse http://localhost:8080
 ## Como funciona?
 ### Backend
   * 1 Hash Table
