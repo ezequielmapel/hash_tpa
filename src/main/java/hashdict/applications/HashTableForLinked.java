@@ -19,6 +19,7 @@ public class HashTableForLinked <T extends Object> {
 	
 	public  <T extends Object> void create(String key, T value) {
 		int hashKey = this.getNewHashKeyOrReturnExisting(key);
+	
 		if(this.hashs[hashKey] != null)
 			this.hashs[hashKey].getRow().add(new HashElement<T>(key, value));
 		else

@@ -23,8 +23,6 @@ public class MisspelledWord {
 		this.splittingWord();
 		this.manipulateSplittedWords();
 	
-		System.out.println(suggetions.size());
-		System.out.println(suggetions);
 		return this.suggetions;
 	}
 	
