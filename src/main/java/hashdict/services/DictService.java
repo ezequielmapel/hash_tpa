@@ -16,12 +16,15 @@ import javax.annotation.PostConstruct;
 
 import org.springframework.stereotype.Service;
 
+import hashdict.applications.HashLinked;
 import hashdict.applications.HashTableForLinked;
+import hashdict.applications.MisspelledWord;
 
 @Service
 public class DictService {
 	
 	HashTableForLinked<String> hashTable = new HashTableForLinked<>();
+	MisspelledWord misspelledWord = new MisspelledWord();
 	
 	@PostConstruct
 	public void loadDictOnInitApplication(){
@@ -32,12 +35,11 @@ public class DictService {
 		try {
 			String path = "src/main/resources/assets/pt.dic";
 			BufferedReader reader  = new BufferedReader(new FileReader("src/main/resources/assets/pt.dic", Charset.forName("UTF-16")));
-			//new BufferedReader(new InputStreamReader(new FileInputStream(path), Charset.forName("UTF-8")));//
 			int numberLine = 0;
 			System.out.println("Teste");
 
 			for (String line : reader.lines().toList()){
-				
+				// Ignorar letras do alfabeto
 				if(numberLine > 22) {
 					this.hashTable.create(line, line);
 				}else {
@@ -45,10 +47,6 @@ public class DictService {
 				}
 				
 			}
-			
-			System.out.println(this.hashTable.getHashs().length);
-			System.out.println((String)this.hashTable.read("Ah"));
-			
 			
 			reader.close();
 			
@@ -61,5 +59,17 @@ public class DictService {
 
 	public boolean containsTheWord(String word) {
 		return this.hashTable.read(word) != null;
+	}
+	
+	public List<String> getSuggetions(String wordToTry) {
+		List<String> suggetionsWord = new LinkedList<>();
+		List<String> possiblesWords = this.misspelledWord.findSuggetionsToWord(wordToTry);
+		
+		for (String possibleWord : possiblesWords) {
+			if(this.containsTheWord(possibleWord)) {
+				suggetionsWord.add(possibleWord);
+			}
+		}
+		return suggetionsWord;
 	}
 }

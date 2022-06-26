@@ -5,6 +5,7 @@ body, * {
 
 body {
 	background-color: #333;
+	font-fammily: 'Arial', sans-serif;
 }
 
 main {
@@ -18,4 +19,32 @@ main {
 
 .incorrect-word {
 	text-decoration: underline wavy red;
+}
+
+.modal-suggestions {
+	display: none;
+	position: absolute;
+	min-width: 200px;
+	min-height: 40px;
+	background-color: #ffffff;
+	top: 0%;
+	flex-direction: column;
+	gap: 1px;
+	flex-wrap: nowrap;
+	justify-content: center;
+	border-radius: 1px;
+}
+
+.modal-suggestions > div {
+	background-color: white;
+	height: 30px;
+	width: calc(99% - 5px);
+	padding-left: 5px;
+	border-bottom: 1px solid #eee;
+	line-height: 30px;
+}
+
+.modal-suggestions > div:hover{
+	background-color: #eee;
+	cursor: pointer;
 }

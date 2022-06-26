@@ -1,11 +1,6 @@
 package hashdict.applications;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -14,12 +9,10 @@ public class HashTableForLinked <T extends Object> {
 	
 	public static final int TAMANHO_HASH = 10000031;
 	public static final int TAMANHO_RANDOM_PESO = 3000;
+	public static final int TAMANHO_OPCAO_CORRECAO = 5;
 	private HashLinked<T>[] hashs = new HashLinked[TAMANHO_HASH];
 	private List<Integer> pesos = new ArrayList<>();
-	private int correctInsertCount = 0;
-	private int colisaoCount = 0;
-	public int colisaoAntesMod = 0;
-	public List<Integer> colisaoAntes = new ArrayList<>();
+	
 	
 	public HashTableForLinked() {		
 	}
@@ -52,7 +45,7 @@ public class HashTableForLinked <T extends Object> {
 				.filter(e -> e.getKey().equals(key))
 				.collect(Collectors.toList()).get(0);
 		} catch (Exception notFound) {
-			System.out.println("Não foi possível encontrar essa key");
+			//System.out.println("Não foi possível encontrar essa key");
 		}
 		return hashElement;
 	}
@@ -62,7 +55,7 @@ public class HashTableForLinked <T extends Object> {
 		int index = 0;
 		
 		for (char letter : key.toCharArray()) {
-			value += ((int) letter + index); //* this.getNewPesoOrReturnExisting(index);
+			value += ((int) letter + index) * this.getNewPesoOrReturnExisting(index);
 			index++;
 		}
 		
@@ -90,13 +83,5 @@ public class HashTableForLinked <T extends Object> {
 		return this.hashs;
 	}
 	
-	public int getColisaoCount() {
-		return this.colisaoCount;
-	}
-	
-	public void percentageInserts() {
-		double perc = (((double) this.colisaoCount / this.TAMANHO_HASH))*100;
-		System.out.printf("Correto: %d; Colis�o: %d; Porcentagem: %.2f%% %n", this.correctInsertCount, this.colisaoCount, perc);
-	}
 	
 }

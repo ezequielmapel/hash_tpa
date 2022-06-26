@@ -12,16 +12,24 @@
 				
 			</main>
 		</section>
+		
+		<div id="modal-suggestions" class="modal-suggestions">
+		
+		</div>
 	</body>
 	
 	<script type="text/javascript">
 	
 	const TIME_INTERVAL_TO_ENTER = 3000;
 	const paper = document.querySelector("#paper");
-	let rincorrectWords = [];
+	const menu = document.querySelector("#modal-suggestions");
+	
+	let incorrectWords = [];
+	let suggestionsWords = [];
 	
 	checkingWhenUserStopEnterWord();
 	listeningContextButtonMouse();
+	listeningToHidContextMenuCustom();
 	
 	function checkingWhenUserStopEnterWord() {
 		let timeoutSubscription;
@@ -39,7 +47,6 @@
 	}
 	
 	function checkWordsInDictonary() {
-		console.log("Check")
 		const xml = new XMLHttpRequest();
 		const url = "/api/dictionary/check-text";
 		const wordsInPaper = treatText(paper.innerText).split(" ");
@@ -47,10 +54,12 @@
 		xml.open("POST", url, true);
 		xml.setRequestHeader('Content-type', 'application/json');
 		
-		xml.onreadystatechange = (response) => {
+		xml.onreadystatechange = () => {
 			 if(isOKHttpState(xml)) {
-				let wordsToWrite = searchByWordsIncorrect(JSON.parse(xml.response), paper.innerText.split(" "));
+				incorrectWords = JSON.parse(xml.response);
+				let wordsToWrite = searchByWordsIncorrect(paper.innerText.split(" "));
 				writeWordsInPaper(wordsToWrite);
+				setEndOfContenteditable();
 			 }
 		}
 		
@@ -61,50 +70,141 @@
 		return http.readyState == 4 && http.status == 200;
 	}
 	
-	function searchByWordsIncorrect(incorrectWords, wordsInPaper) {
-		console.log(incorrectWords)
-		rincorrectWords = incorrectWords;
-		for (let indexWordInPaper in wordsInPaper) {
-			let wordInPaper = wordsInPaper[indexWordInPaper];
-			for (let incorrectWord of incorrectWords) {
-				//console.log(wordInPaper + " " + incorrectWord);
-				if(treatText(wordInPaper) == incorrectWord) {
-					//console.log(treatText(wordInPaper))
-					//console.log(incorrectWord)
-					wordsInPaper[indexWordInPaper] = `<span class="incorrect-word">${wordsInPaper[indexWordInPaper]}</span>`;
-				}
-			}
+	function searchByWordsIncorrect(wordsInPaper) {
+		wordsInPaper = paper.innerText;
+		for (let incorrectWord of incorrectWords) {
+			const customWord = `<span class="incorrect-word" id="${incorrectWord}">${incorrectWord}</span>`;
+			wordsInPaper = wordsInPaper.replace(new RegExp(incorrectWord, "ig"), customWord);
 		}
 		
+		writeWordsInPaper(wordsInPaper)
 		return wordsInPaper;
 	}
 	
 	function writeWordsInPaper(changedWordsInPaper) {
-		paper.innerHTML = changedWordsInPaper.join(" ");
+		paper.innerHTML = changedWordsInPaper;
 	}
 	
 	function treatText(text) {
+		const noBreakSpace = /\u00a0/g;
 		let textLowerCase = text.toLowerCase();
-		let withoutSpecialChar = textLowerCase.replace(/[!@#$%^&?*,.]/g, "");
+		let withoutSpecialChar = textLowerCase.replace(/[!@#$%^&?*,.]/g, "").trim();
+		withoutSpecialChar = withoutSpecialChar.replace(/[\n]/, " ");
+		withoutSpecialChar = withoutSpecialChar.replace(noBreakSpace, " ");
 		return withoutSpecialChar;
 	}
 	
 	// MENU CONTEXTO
-	
 	function listeningContextButtonMouse() {
-		paper.addEventListener('contextmenu', selectText);
+		paper.addEventListener('contextmenu', selectTextAndCreateMenuContext);
 	}
 	
-	function selectText(event) {
+	function selectTextAndCreateMenuContext(event) {
 		event.preventDefault();
-		const selectedText = window.getSelection().toString();
-		console.log(selectedText);
-		console.log(rincorrectWords);
+		const selectedText = window.getSelection().toString().trim();
+		
+		if(incorrectWords.indexOf(selectedText) > -1) {
+			requestSuggestionAndShowMenuContext(event, selectedText);
+		}
 	}
 	
-
+	function requestSuggestionAndShowMenuContext(event, selectedText) {
+		requestSuggetionsForKey(selectedText);
+		setTimeout(() => {
+			if(suggestionsWords.length > 0){
+				showContextMenuCustom(event.clientX, event.clientY);
+				suggestionsWords.forEach(s => createOptionSuggestion(s, selectedText));
+				console.log(suggestionsWords)
+			}	
+		}, 200);
+	}
 	
+	function requestSuggetionsForKey(key) {
+		const xml = new XMLHttpRequest();
+		const url = "/api/dictionary/suggetions?key=" + key.trim();
+		
+		
+		xml.open("GET", url, true);
+		xml.setRequestHeader('Content-type', 'application/json');
+		
+		xml.onreadystatechange = () => {
+			 if(isOKHttpState(xml)) {
+				this.clearContextMenuChilds();
+				suggestionsWords = JSON.parse(xml.response);
+			 }
+		}
+		
+		xml.send();
+	}
+	
+	function showContextMenuCustom(posX, posY) {
+		menu.style.display = "flex";
+		menu.style.left = `${posX}px`;
+		menu.style.top = `${posY}px`;
+	}
+	
+	function createOptionSuggestion(text, id) {
+		const suggestion = document.createElement('div');
+		suggestion.innerText = text;
+		suggestion.setAttribute("id", id);
+		suggestion.onclick = onClickOption;
+		
+		menu.appendChild(suggestion);
+	}
+	
+	function onClickOption(event) {
+		event.preventDefault();
+		const suggestWord = event.target.innerText;
+		replaceSelectedText(event.target.id, suggestWord);
+		hideContextMenuCustom();
+	}
+	
+	function clearContextMenuChilds() {
+		menu.innerHTML = '';
+	}
+	
+	function hideContextMenuCustom() {
+		menu.style.display = "none";
+	}
+	function listeningToHidContextMenuCustom() {		
+		document.addEventListener('click', 
+				(e) => {
+					if(!menu.contains(e.target)){
+						hideContextMenuCustom();
+					}
+				});
+	}
+	
+	
+	function replaceSelectedText(id, replacementText) {
+	    const words = paper.innerHTML;
+	    const wordToChange = document.querySelector(`#paper #${id}`);
+	    wordToChange.replaceWith(replacementText);
+	}
 	 
+	// De:
+	//https://stackoverflow.com/questions/1125292/how-to-move-cursor-to-end-of-contenteditable-entity/3866442#3866442
+	function setEndOfContenteditable(){
+		contentEditableElement = paper;
+	    var range,selection;
+	    if(document.createRange)//Firefox, Chrome, Opera, Safari, IE 9+
+	    {
+	        range = document.createRange();//Create a range (a range is a like the selection but invisible)
+	        range.selectNodeContents(contentEditableElement);//Select the entire contents of the element with the range
+	        range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+	        selection = window.getSelection();//get the selection object (allows you to change selection)
+	        selection.removeAllRanges();//remove any selections already made
+	        selection.addRange(range);//make the range you have just created the visible selection
+	    }
+	    else if(document.selection)//IE 8 and lower
+	    { 
+	        range = document.body.createTextRange();//Create a range (a range is a like the selection but invisible)
+	        range.moveToElementText(contentEditableElement);//Select the entire contents of the element with the range
+	        range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+	        range.select();//Select the range (make it the visible selection
+	    }
+	}
+
 	
 	</script>
 </html>
